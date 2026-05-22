@@ -22,5 +22,9 @@ def main():
     completeness_report = analyzer.calculate_completeness()
     print(f'\nРезультат анализа полноты: \n{completeness_report}')
     
+    # визуализируем результаты - Полнота
+    analyzer.plot_completeness()
+    print(f'\nСтроим график полноты')
+    
 if __name__ == "__main__":
     main()

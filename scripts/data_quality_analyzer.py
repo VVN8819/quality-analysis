@@ -1,4 +1,6 @@
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Класс , который хранит данные и проводит расчеты.
 class DataQualityAnalyzer:
@@ -8,7 +10,7 @@ class DataQualityAnalyzer:
         self.df = df.copy()
         self.metrics = {}   # Сюда складываем результаты расчетов
     
-    # считаем полноту
+    # считаем полноту и визуализируем результаты
     def calculate_completeness(self) -> pd.DataFrame:
         
         # 2. Считает общее количество значений
@@ -34,3 +36,29 @@ class DataQualityAnalyzer:
         
         self.metrics["completeness"] = pd.DataFrame(results)
         return self.metrics["completeness"]
+    
+    # Создайте столбчатую диаграмму, показывающую полноту данных по каждому столбцу
+    def plot_completeness(self):
+        df_comp = self.metrics["completeness"].copy()
+        df_comp_sorted = df_comp.sort_values(by="Completeness_%", ascending=True)
+        
+        def get_color(pct):
+            if pct >= 95: return 'green'
+            elif pct >= 85: return 'orange'
+            else: return 'red'
+            
+        df_comp_sorted["Color"] = df_comp_sorted["Completeness_%"].apply(get_color)
+        
+        plt.figure(figsize=(10, 6))
+        plt.bar(df_comp_sorted["Column"], df_comp_sorted["Completeness_%"], 
+                color=df_comp_sorted["Color"], edgecolor='black', linewidth=0.8)
+        
+        plt.title('Полнота данных по столбцам (Completeness)', fontsize=15, fontweight='bold', pad=15)
+        plt.xlabel('Столбцы', fontsize=12)
+        plt.ylabel('Заполненность (%)', fontsize=12)
+        plt.xticks(rotation=45, ha='right')
+        plt.ylim(0, 105)  # Немного места сверху для значений
+        plt.grid(axis='y', linestyle=':', alpha=0.5)
+        plt.legend(loc='lower left')
+        plt.tight_layout()
+        plt.show()
