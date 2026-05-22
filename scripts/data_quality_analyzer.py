@@ -1,6 +1,7 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 # Класс , который хранит данные и проводит расчеты.
 class DataQualityAnalyzer:
@@ -38,7 +39,7 @@ class DataQualityAnalyzer:
         return self.metrics["completeness"]
     
     # Создайте столбчатую диаграмму, показывающую полноту данных по каждому столбцу
-    def plot_completeness(self):
+    def plot_completeness(self, save_path: str = None):
         df_comp = self.metrics["completeness"].copy()
         df_comp_sorted = df_comp.sort_values(by="Completeness_%", ascending=True)
         
@@ -59,6 +60,12 @@ class DataQualityAnalyzer:
         plt.xticks(rotation=45, ha='right')
         plt.ylim(0, 105)  # Немного места сверху для значений
         plt.grid(axis='y', linestyle=':', alpha=0.5)
-        plt.legend(loc='lower left')
         plt.tight_layout()
+        
+        if save_path:
+            # Создаем папку reports, если её нет
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f'График сохранен: {save_path}')
+        
         plt.show()
