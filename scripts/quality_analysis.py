@@ -1,21 +1,26 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
-from scipy import stats
 from pathlib import Path
+from data_quality_analyzer import DataQualityAnalyzer
 
-def read_raw_data(ref_path: Path):
-    if not ref_path.exists():
-        raise FileNotFoundError(f'Не найден справочник: {ref_path}')
+def main():
     
-    ref_df = pd.read_csv(ref_path, encoding="utf-8")
-    
-    return ref_df
-    
-if __name__ == "__main__":
+    # Загрузите данные в DataFrame
     ref_path = Path(__file__).parent.parent / "raw_data" / "customer_data.csv"
     
-    df = read_raw_data(ref_path)
-    print(df.head(10))
+    if not ref_path.exists():
+        print(f'Не найден справочник: {ref_path}')
+        return
+    
+    print(f'Загружаем файл: {ref_path}')
+    
+    # Чтение csv
+    ref_df = pd.read_csv(ref_path, encoding="utf-8")
+    
+    analyzer = DataQualityAnalyzer(ref_df)
+    
+    # Полнота
+    completeness_report = analyzer.calculate_completeness()
+    print(f'\nРезультат анализа полноты: \n{completeness_report}')
+    
+if __name__ == "__main__":
+    main()
