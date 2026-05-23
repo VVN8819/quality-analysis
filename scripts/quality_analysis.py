@@ -57,7 +57,21 @@ def main():
         
     if accuracy_report:
         full_accuracy_report = pd.concat(accuracy_report, ignore_index=True)
-        print(f'\nСводный отчёт по точности: \n{full_accuracy_report}') 
+        print(f'\nСводный отчёт по точности: \n{full_accuracy_report}')
+        
+    # Выводим и сохраняем примеры некорректных данных
+    error_examples = analyzer.report_accuracy_errors(columns=columns, max_examples=5)
+    
+    error_report_path = project_dir / "reports" / "accuracy_errors_report.txt"
+    with open(error_report_path, 'w', encoding='utf-8') as f:
+        f.write('Примеры некорректных данных (Accuracy)\n')
+        for col, df_err in error_examples.items():
+            f.write(f'\nСтолбец: {col}\n')
+            f.write(f'Показано ошибок первых {len(df_err)}\n')
+            f.write(df_err.to_string(index=False) + "\n")
+    
+    print(f'Детальный отчёт сохранён: {error_report_path}')
+    
     
 if __name__ == "__main__":
     main()

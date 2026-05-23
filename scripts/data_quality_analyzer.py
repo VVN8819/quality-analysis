@@ -135,7 +135,7 @@ class DataQualityAnalyzer:
                     isinstance(value, (int, float)) and
                     0 <= value <= 120
                 ),
-                'between 0-120 years old'
+                'is between 0-120 years old'
             ),
             
             # • purchase_amount: не может быть отрицательным 
@@ -150,7 +150,7 @@ class DataQualityAnalyzer:
             # • registration_date: не может быть в будущем
             "registration_date": (
                 lambda value: self._is_valid_date_not_future(value),
-                'Valid date & not in the future'
+                'valid date & not in the future'
             )
         }
         
@@ -183,6 +183,48 @@ class DataQualityAnalyzer:
         self.metrics["accuracy"][column] = results
         
         return results
+    
+    # ======== Выведите примеры некорректных данных для каждого столбца ==========
+    def report_accuracy_errors(self, columns: list, max_examples: int) -> dict:
+        error_report = {}
+        print(f'\nПримеры некорректных данных: по {max_examples}шт')
+        for column in columns:
+            try:
+                # Получаем правила корректности для столбца и название правила
+                validator_func, rule_name = self._get_validator(column)
+            
+                # исключаем пропуски из знаменателя
+                non_missing = self.df[column].dropna()
+            
+                # проверка всех непустых на правило корректности
+                validate_results = non_missing.apply(validator_func)
+                invalid_mask = ~validate_results
+            
+                if invalid_mask.sum() > 0:
+                    # Берём первые max_examples ошибок
+                    invalid_examples = non_missing[invalid_mask].head(max_examples)
+                
+                    error_report[column] = pd.DataFrame({
+                        "index": invalid_examples.index.tolist(),
+                        "value": invalid_examples.values.tolist(),
+                        "rule": rule_name
+                    })
+                
+                    print(f'\n{column} {rule_name} - ошибок: {invalid_mask.sum()} из {len(non_missing)} проверенных')
+                    print(f'Примеры (первые {len(invalid_examples)}):')
+                
+                else:
+                    print(f'{column} - ошибок не обнаружено')
+                    
+            except ValueError as e:
+                print(f"\nСтолбец: `{column}` — пропущен: {e}")
+                
+        return error_report
+                
+                
+            
+            
+        
     
     
     
