@@ -1,3 +1,4 @@
+# quality_analysis.py
 import pandas as pd
 from pathlib import Path
 from data_quality_analyzer import DataQualityAnalyzer
@@ -6,6 +7,7 @@ def main():
     
     script_dir = Path(__file__).parent
     project_dir = script_dir.parent
+    
     # Загрузите данные в DataFrame
     ref_path = project_dir / "raw_data" / "customer_data.csv"
     
@@ -72,6 +74,30 @@ def main():
     
     print(f'Детальный отчёт сохранён: {error_report_path}')
     
+    # ============ Анализ выбросов методом IQR ==================
+    numeric_cols = ["age", "purchase_amount"]
+    
+    for col in numeric_cols:
+        print(f'\nСтолбец: {col}')
+        iqr_result = analyzer.ident_outliers_iqr(col, multiplier=1.5)
+    
+        if iqr_result:
+            print(f"татистики для '{iqr_result['Column']}':")
+            print(f"Q1 (25%): {iqr_result['Q1']}")
+            print(f"Q3 (75%): {iqr_result['Q3']}")
+            print(f"IQR: {iqr_result['IQR']}")
+            print(f"Нижняя граница: {iqr_result['lower_bound']}")
+            print(f"Верхняя граница: {iqr_result['upper_bound']}")
+            print(f"\nНайдено выбросов: {iqr_result['outliers_count']}")
+        
+            if iqr_result["outliers_sample"]:
+                print(f"\nПримеры выбросов (первые 10):")
+                for idx, val in zip(iqr_result['outliers_indices'], iqr_result['outliers_sample']):
+                    if col == "purchase_amount":
+                        print(f"[row {idx}] значение: {val:,.2f}руб.")
+                    else:
+                        print(f"[row {idx}] значение: {val}")
+                        
     
 if __name__ == "__main__":
     main()

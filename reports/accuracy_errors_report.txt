@@ -39,8 +39,8 @@
 Столбец: registration_date
 Показано ошибок первых 5
  index      value                           rule
-     0 2024-06-10 valid date & not in the future
-     1 2025-08-21 valid date & not in the future
-     2 2023-04-20 valid date & not in the future
-     3 2023-07-28 valid date & not in the future
-     4 2023-04-24 valid date & not in the future
+    63 2026-07-21 valid date & not in the future
+    73 2026-08-27 valid date & not in the future
+    80 2026-07-25 valid date & not in the future
+    96 2026-07-19 valid date & not in the future
+   124 2026-06-20 valid date & not in the future

@@ -1,3 +1,4 @@
+# data_quality_analyzer.py
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -165,7 +166,7 @@ class DataQualityAnalyzer:
             dt = pd.to_datetime(value, errors='coerce')
             if pd.isna(dt):
                 return False
-            return dt.date() <= datetime.today().date
+            return dt.date() <= datetime.today().date()
         except Exception:
             return False
     
@@ -219,6 +220,53 @@ class DataQualityAnalyzer:
                 print(f"\nСтолбец: `{column}` — пропущен: {e}")
                 
         return error_report
+    
+    # 3. выбросы в числовом столбце методом IQR.
+    def ident_outliers_iqr(self, column: str, multiplier: float) -> dict:
+        
+        # исключаем пропуски из знаменателя
+        non_missing = self.df[column].dropna()
+        numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
+        
+        if len(numeric_data) == 0:
+            print(f"Столбец '{column}' не содержит числовых данных")
+            return {}
+        
+        # Рассчитайте статистики
+        Q1 = numeric_data.quantile(0.25)
+        Q3 = numeric_data.quantile(0.75)
+        IQR = Q3 - Q1
+        
+        # Определите значения вне границ [lower_bound, upper_bound]
+        lower_bound = Q1 - multiplier * IQR
+        upper_bound = Q3 + multiplier * IQR
+        
+        # Найдите выбросы
+        outliers_mask = (numeric_data < lower_bound) | (numeric_data > upper_bound)
+        outliers = numeric_data[outliers_mask]
+        
+        # Подсчитайте количество выбросов
+        # Выведите примеры найденных выбросов
+        outliers_count = len(outliers)
+                
+        results = {
+            "Column": column,
+            "Q1": round(Q1, 2),
+            "Q3": round(Q3, 2),
+            "IQR": round(IQR, 2),
+            "lower_bound": round(lower_bound, 2),
+            "upper_bound": round(upper_bound, 2),
+            "outliers_count": int(outliers_count),
+            "outliers_sample": outliers.head(10).tolist(),
+            "outliers_indices": outliers.head(10).index.tolist()
+        }
+        
+        # Сохраняем результат в metrics
+        if "outliers_iqr" not in self.metrics:
+            self.metrics["outliers_iqr"] = {}
+        self.metrics["outliers_iqr"][column] = results
+        
+        return results
                 
                 
             
