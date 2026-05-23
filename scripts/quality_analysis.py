@@ -15,12 +15,12 @@ def main():
     
     print(f'Загружаем файл: {ref_path}')
         
-    # Чтение csv
+    # =================== Чтение csv ====================
     ref_df = pd.read_csv(ref_path, encoding="utf-8")
     
     analyzer = DataQualityAnalyzer(ref_df)
     
-    # Полнота
+    # =============== Полнота ===================
     completeness_report = analyzer.calculate_completeness()
     print(f'\nРезультат анализа полноты: \n{completeness_report}')
     
@@ -30,6 +30,12 @@ def main():
     # визуализируем результаты - Полнота
     analyzer.plot_completeness(save_path=str(chart_completeness_path))
     print(f'\nСтроим график полноты')
+    print(f'\nСохраняем график полноты в {chart_completeness_path}')
+    
+    # ================== Точность ===================
+    accuracy_report = analyzer.calculate_accuracy()
+    print(f'\nРезультат анализа точности: \n{accuracy_report}')
+    
     
 if __name__ == "__main__":
     main()

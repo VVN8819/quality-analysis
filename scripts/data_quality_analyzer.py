@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
+import re
 
 # Класс , который хранит данные и проводит расчеты.
 class DataQualityAnalyzer:
@@ -24,7 +25,7 @@ class DataQualityAnalyzer:
             # 3. Считает количество пропущенных значений
             count_empt = total_rows - count_filled
             # 4. Рассчитывает процент полноты
-            completeness_pct = (count_filled / total_rows) * 100
+            completeness_pct = (count_filled / total_rows) * 100 if total_rows > 0 else 0
             
             # 5. Возвращает словарь с результатами для каждого столбца
             results.append({
@@ -69,3 +70,42 @@ class DataQualityAnalyzer:
             print(f'График сохранен: {save_path}')
         
         plt.show()
+    
+    # считаем точность
+    def calculate_accuracy(self) -> pd.DataFrame:
+        
+        column = 'email'
+        results = []
+        
+        # исключаем пропуски из знаменателя
+        non_missing = self.df[column].dropna()
+        total_valid = len(non_missing)
+        
+        # правила корректности: email
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        
+        # Проверяем на соответствие паттерну
+        def is_valid_email(value):
+            # должна быть строка и =email_pattern
+            if not isinstance(value, str):
+                return False
+            return bool(re.match(email_pattern, value.strip()))
+        
+        # проверка всех непустых на email_pattern
+        validate_results = non_missing.apply(is_valid_email)
+        
+        validated_count = validate_results.sum() # прошли проверку
+        invalid_count = total_valid - validated_count # не прошли проверку
+        accuracy_pct = (validated_count / total_valid) * 100 if total_valid > 0 else 0
+        
+        results.append({
+            "Column": column,
+            "Rule": 'Contains @ and valid domain',
+            "Total_valid_non_missing": total_valid,
+            "Validated_count": int(validated_count),
+            "Invalid_count": int(invalid_count),
+            "Accuracy_%": round(accuracy_pct, 2)
+        })
+        
+        self.metrics["accuracy"] = pd.DataFrame(results)
+        return self.metrics["accuracy"]
