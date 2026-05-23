@@ -12,7 +12,7 @@ class DataQualityAnalyzer:
         self.df = df.copy()
         self.metrics = {}   # Сюда складываем результаты расчетов
     
-    # считаем полноту и визуализируем результаты
+    # 1. считаем полноту и визуализируем результаты
     def calculate_completeness(self) -> pd.DataFrame:
         
         # 2. Считает общее количество значений
@@ -71,41 +71,85 @@ class DataQualityAnalyzer:
         
         plt.show()
     
-    # считаем точность
-    def calculate_accuracy(self) -> pd.DataFrame:
-        
-        column = 'email'
-        results = []
+    # 2. считаем точность
+    # ========= Универсальный метод для расчёта Accuracy. ==============
+    def _validate_column(self, column: str, validator_func, rule_name: str) -> pd.DataFrame:
         
         # исключаем пропуски из знаменателя
         non_missing = self.df[column].dropna()
         total_valid = len(non_missing)
         
-        # правила корректности: email
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        # Если данных нет
+        if total_valid == 0:
+            return pd.DataFrame({
+            "Column": [column],
+            "Rule": [rule_name],
+            "Total_valid_non_missing": [0],
+            "Validated_count": [0],
+            "Invalid_count": [0],
+            "Accuracy_%": [0.0]
+        })
         
-        # Проверяем на соответствие паттерну
-        def is_valid_email(value):
-            # должна быть строка и =email_pattern
-            if not isinstance(value, str):
-                return False
-            return bool(re.match(email_pattern, value.strip()))
-        
-        # проверка всех непустых на email_pattern
-        validate_results = non_missing.apply(is_valid_email)
+        # проверка всех непустых на правило корректности
+        validate_results = non_missing.apply(validator_func)
         
         validated_count = validate_results.sum() # прошли проверку
         invalid_count = total_valid - validated_count # не прошли проверку
-        accuracy_pct = (validated_count / total_valid) * 100 if total_valid > 0 else 0
+        accuracy_pct = (validated_count / total_valid) * 100
         
-        results.append({
-            "Column": column,
-            "Rule": 'Contains @ and valid domain',
-            "Total_valid_non_missing": total_valid,
-            "Validated_count": int(validated_count),
-            "Invalid_count": int(invalid_count),
-            "Accuracy_%": round(accuracy_pct, 2)
+        return pd.DataFrame({
+            "Column": [column],
+            "Rule": [rule_name],
+            "Total_valid_non_missing": [total_valid],
+            "Validated_count": [int(validated_count)],
+            "Invalid_count": [int(invalid_count)],
+            "Accuracy_%": [round(accuracy_pct, 2)]
         })
+    
+    # ========= определите правила корректности для столбца ============
+    def _get_validator(self, column: str):
+        validators = {
+            "email": (
+                lambda value: (
+                    isinstance(value, str) and
+                    bool(re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', value.strip()))
+                ),
+                'contains @ and valid domain'
+            ),
+            
+            "phone": (
+                lambda value: (
+                    isinstance(value, str) and
+                    value.strip().startswith('+7') and
+                    len(re.sub(r'\D', '', value)) == 11
+                ),
+                'starts with +7 and has 11 digits'
+            ),
+        }
         
-        self.metrics["accuracy"] = pd.DataFrame(results)
-        return self.metrics["accuracy"]
+        if column not in validators:
+            raise ValueError(f'Нет правила валидации для столбца: {column}')
+        
+        return validators[column]
+    
+    # ============ Рассчитывает метрику Accuracy для столбца ============
+    def calculate_accuracy(self, column: str) -> pd.DataFrame:
+        
+        # Получаем правила корректности для столбца и название правила
+        validator_func, rule_name = self._get_validator(column)
+        
+        results = self._validate_column(column, validator_func, rule_name)
+    
+        # Сохраняем результат в metrics
+        if "accuracy" not in self.metrics:
+            self.metrics["accuracy"] = {}
+        self.metrics["accuracy"][column] = results
+        
+        return results
+    
+    
+    
+    
+    
+    
+    

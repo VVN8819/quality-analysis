@@ -33,9 +33,31 @@ def main():
     print(f'\nСохраняем график полноты в {chart_completeness_path}')
     
     # ================== Точность ===================
-    accuracy_report = analyzer.calculate_accuracy()
-    print(f'\nРезультат анализа точности: \n{accuracy_report}')
+    columns = ["email", "phone"]
+    accuracy_report = []
     
+    for col in columns:
+        print(f'\nПроверка: {col}')
+        result = analyzer.calculate_accuracy(col)
+        accuracy_report.append(result)
+        
+        # 2. Считает количество корректных значений 
+        # 3. Рассчитывает процент точности
+        valid = result["Validated_count"].values[0]
+        acc = result["Accuracy_%"].values[0]
+        
+        if acc >= 95:
+            status = "Отлично"
+        elif acc >= 85:
+            status = "Внимание"
+        else:
+            status = "Критично"
+        
+        print(f'Результат анализа точности: \n{status}: точность {acc}% корректных значений {valid}')
+        
+    if accuracy_report:
+        full_accuracy_report = pd.concat(accuracy_report, ignore_index=True)
+        print(f'\nСводный отчёт по точности: \n{full_accuracy_report}') 
     
 if __name__ == "__main__":
     main()
