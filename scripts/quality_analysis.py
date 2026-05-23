@@ -75,14 +75,18 @@ def main():
     print(f'Детальный отчёт сохранён: {error_report_path}')
     
     # ============ Анализ выбросов методом IQR ==================
+    print(f'Анализ выбросов методом IQR')
+
     numeric_cols = ["age", "purchase_amount"]
+    all_iqr_results = {}
     
     for col in numeric_cols:
         print(f'\nСтолбец: {col}')
         iqr_result = analyzer.ident_outliers_iqr(col, multiplier=1.5)
     
         if iqr_result:
-            print(f"татистики для '{iqr_result['Column']}':")
+            all_iqr_results[col] = iqr_result
+            print(f"Статистики для '{iqr_result['Column']}':")
             print(f"Q1 (25%): {iqr_result['Q1']}")
             print(f"Q3 (75%): {iqr_result['Q3']}")
             print(f"IQR: {iqr_result['IQR']}")
@@ -97,6 +101,17 @@ def main():
                         print(f"[row {idx}] значение: {val:,.2f}руб.")
                     else:
                         print(f"[row {idx}] значение: {val}")
+    
+    # Boxplot для метода IQR
+    print(f"\nВизуализация выбросов (Boxplot)")
+    
+    # Папка для сохранения графиков
+    reports_dir = project_dir / "reports"
+    
+    # Строим boxplot для каждого столбца
+    analyzer.plot_boxplots_all(columns=numeric_cols, save_dir=reports_dir)
+    
+    print(f'Все графики сохранены в: {reports_dir}')
                         
     
 if __name__ == "__main__":

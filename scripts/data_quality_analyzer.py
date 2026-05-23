@@ -160,7 +160,7 @@ class DataQualityAnalyzer:
         
         return validators[column]
     
-    # валидная дата и не в будущем
+    # ================ валидная дата и не в будущем ===================
     def _is_valid_date_not_future(self, value) -> bool:
         try:
             dt = pd.to_datetime(value, errors='coerce')
@@ -268,14 +268,77 @@ class DataQualityAnalyzer:
         
         return results
                 
-                
-            
-            
+    # ======= Постройте boxplot, показываем медиану, квартили и выбросы ========
+    def boxplot_iqr(self, column: str, save_path: str=None):
+        # исключаем пропуски из знаменателя
+        non_missing = self.df[column].dropna()
+        numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
         
-    
-    
-    
-    
-    
-    
-    
+        if len(numeric_data) == 0:
+            print(f"Столбец '{column}' не содержит числовых данных")
+            return {}
+        
+        # Рассчитайте статистики
+        Q1 = numeric_data.quantile(0.25)
+        Q3 = numeric_data.quantile(0.75)
+        IQR = Q3 - Q1
+        median = numeric_data.median()
+        # Определите значения вне границ [lower_bound, upper_bound]
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        # Настройка графика
+        plt.figure(figsize=(8, 6))
+        
+        # boxplot через seaborn
+        sns.boxplot(x=numeric_data, color='skyblue', width=0.6,
+                   boxprops=dict(edgecolor='navy', linewidth=1.5),
+                   medianprops=dict(color='red', linewidth=2.5),
+                   whiskerprops=dict(color='navy', linestyle='--', linewidth=1.5),
+                   capprops=dict(color='navy', linewidth=1.5),
+                   flierprops=dict(marker='o', color='red', markersize=5, alpha=0.7, label='Выбросы'))
+        
+        # наглядно показывает медиану, квартили и выбросы
+        plt.axvline(lower_bound, color='orange', linestyle=':', linewidth=1.5, 
+                   label=f'Нижняя граница: {lower_bound:.2f}', alpha=0.8)
+        plt.axvline(upper_bound, color='orange', linestyle=':', linewidth=1.5, 
+                   label=f'Верхняя граница: {upper_bound:.2f}', alpha=0.8)
+        plt.axvline(median, color='green', linestyle='-.', linewidth=1.5, 
+                   label=f'Медиана: {median:.2f}', alpha=0.8)
+        
+        plt.title(f'Boxplot: {column}, метод IQR', 
+                 fontsize=14, fontweight='bold', pad=15)
+        plt.xlabel('Значение', fontsize=11)
+        plt.ylabel('Распределение', fontsize=11)
+        plt.legend(loc='best', fontsize=9)
+        plt.grid(axis='x', linestyle=':', alpha=0.4)
+        plt.tight_layout()
+        
+        # Сохранение
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Boxplot сохранён: {save_path}")
+        
+        plt.show()
+        
+        # boxplot для каждого столбца из списка
+    def plot_boxplots_all(self, columns: list, save_dir: str = None):
+        
+        results = {}
+        
+        for col in columns:
+            print(f'Строим boxplot: {col}')
+                
+            # путь для сохранения
+            if save_dir:
+                save_path = Path(save_dir) / f"boxplot_iqr_{col}.png"
+            else:
+                save_path = None
+                
+            # Строим график
+            self.boxplot_iqr(col, save_path=str(save_path) if save_path else None)
+            
+            results[col] = save_path
+        
+        return results
