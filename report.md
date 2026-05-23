@@ -11,3 +11,53 @@
 **• Как это может повлиять на анализ и ML-модели?**
 
 Нельзя делать SMS-рассылку на всю базу или email-маркетинга.
+
+# 3.4 Создайте отчет о найденных ошибках
+
+**Примеры некорректных данных (Accuracy)**
+
+Столбец: email
+Показано ошибок первых 5
+ index      value                        rule
+     7     user8@ contains @ and valid domain
+    14 @gmail.com contains @ and valid domain
+    51 @gmail.com contains @ and valid domain
+    55 @gmail.com contains @ and valid domain
+    59    user60@ contains @ and valid domain
+
+Столбец: phone
+Показано ошибок первых 5
+ index        value                             rule
+     0 7.942373e+10 starts with +7 and has 11 digits
+     1 7.978093e+10 starts with +7 and has 11 digits
+     2 7.999975e+10 starts with +7 and has 11 digits
+     4 7.914770e+10 starts with +7 and has 11 digits
+     5 7.910794e+10 starts with +7 and has 11 digits
+
+Столбец: age
+Показано ошибок первых 5
+ index  value                       rule
+    21    150 is between 0-120 years old
+    28    999 is between 0-120 years old
+    30    150 is between 0-120 years old
+    42    150 is between 0-120 years old
+    60     -5 is between 0-120 years old
+
+Столбец: purchase_amount
+Показано ошибок первых 5
+ index  value        rule
+     1  -8766 more than 0
+     3  -7141 more than 0
+    88  -6054 more than 0
+   118  -1107 more than 0
+   120  -2453 more than 0
+
+Столбец: registration_date
+Показано ошибок первых 5
+ index      value                           rule
+     0 2024-06-10 valid date & not in the future
+     1 2025-08-21 valid date & not in the future
+     2 2023-04-20 valid date & not in the future
+     3 2023-07-28 valid date & not in the future
+     4 2023-04-24 valid date & not in the future
+

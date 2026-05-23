@@ -187,7 +187,7 @@ class DataQualityAnalyzer:
     # ======== Выведите примеры некорректных данных для каждого столбца ==========
     def report_accuracy_errors(self, columns: list, max_examples: int) -> dict:
         error_report = {}
-        print(f'\nПримеры некорректных данных: по {max_examples}шт')
+        print(f'\nПримеры некорректных данных')
         for column in columns:
             try:
                 # Получаем правила корректности для столбца и название правила
@@ -211,7 +211,6 @@ class DataQualityAnalyzer:
                     })
                 
                     print(f'\n{column} {rule_name} - ошибок: {invalid_mask.sum()} из {len(non_missing)} проверенных')
-                    print(f'Примеры (первые {len(invalid_examples)}):')
                 
                 else:
                     print(f'{column} - ошибок не обнаружено')
