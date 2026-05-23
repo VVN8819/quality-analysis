@@ -33,7 +33,7 @@ def main():
     print(f'\nСохраняем график полноты в {chart_completeness_path}')
     
     # ================== Точность ===================
-    columns = ["email", "phone"]
+    columns = ["email", "phone", "age", "purchase_amount", "registration_date"]
     accuracy_report = []
     
     for col in columns:
@@ -61,3 +61,6 @@ def main():
     
 if __name__ == "__main__":
     main()
+    
+    
+    

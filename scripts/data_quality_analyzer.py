@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 import re
+from datetime import datetime
 
 # Класс , который хранит данные и проводит расчеты.
 class DataQualityAnalyzer:
@@ -109,6 +110,7 @@ class DataQualityAnalyzer:
     # ========= определите правила корректности для столбца ============
     def _get_validator(self, column: str):
         validators = {
+            # • email: должен содержать @ и домен (например, user@domain.com) 
             "email": (
                 lambda value: (
                     isinstance(value, str) and
@@ -117,6 +119,7 @@ class DataQualityAnalyzer:
                 'contains @ and valid domain'
             ),
             
+            # • phone: должен начинаться с +7 и содержать 11 цифр 
             "phone": (
                 lambda value: (
                     isinstance(value, str) and
@@ -125,12 +128,46 @@ class DataQualityAnalyzer:
                 ),
                 'starts with +7 and has 11 digits'
             ),
+            
+            # • age: должен быть в диапазоне 0-120 лет 
+            "age": (
+                lambda value: (
+                    isinstance(value, (int, float)) and
+                    0 <= value <= 120
+                ),
+                'between 0-120 years old'
+            ),
+            
+            # • purchase_amount: не может быть отрицательным 
+            "purchase_amount": (
+                lambda value: (
+                    isinstance(value, (int, float)) and
+                    0 <= value
+                ),
+                'more than 0'
+            ),  
+            
+            # • registration_date: не может быть в будущем
+            "registration_date": (
+                lambda value: self._is_valid_date_not_future(value),
+                'Valid date & not in the future'
+            )
         }
         
         if column not in validators:
             raise ValueError(f'Нет правила валидации для столбца: {column}')
         
         return validators[column]
+    
+    # валидная дата и не в будущем
+    def _is_valid_date_not_future(self, value) -> bool:
+        try:
+            dt = pd.to_datetime(value, errors='coerce')
+            if pd.isna(dt):
+                return False
+            return dt.date() <= datetime.today().date
+        except Exception:
+            return False
     
     # ============ Рассчитывает метрику Accuracy для столбца ============
     def calculate_accuracy(self, column: str) -> pd.DataFrame:
