@@ -10,6 +10,7 @@
         histogram_zscore_age.png - Гистограмма age с границами ±3σ
         histogram_zscore_purchase_amount.png - Гистограмма purchase_amount
         outlier_comparison_summary.txt - Сравнение методов IQR vs Z-score
+        timeliness_report.txt - Расчет актуальности данных с примерами данных из будущего и старых данных (Timeliness) — registration_date
     scripts/ - Python-скрипты
         __pycache__/ - Кэширование
         data_quality_analyzer.py - Класс DataQualityAnalyzer (логика анализа)
