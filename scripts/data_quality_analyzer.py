@@ -322,7 +322,7 @@ class DataQualityAnalyzer:
         
         plt.show()
         
-        # boxplot для каждого столбца из списка
+    # boxplot для каждого столбца из списка
     def plot_boxplots_all(self, columns: list, save_dir: str = None):
         
         results = {}
@@ -342,3 +342,99 @@ class DataQualityAnalyzer:
             results[col] = save_path
         
         return results
+    
+    # 4. выбросы в числовом столбце методом Z-score
+    def ident_outliers_zscore(self, column: str, threshold: float = 3.0) -> dict:
+        # исключаем пропуски из знаменателя
+        non_missing = self.df[column].dropna()
+        numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
+        
+        if len(numeric_data) == 0:
+            print(f"Столбец '{column}' не содержит числовых данных")
+            return {}
+        
+        # Рассчитайте статистики
+        mean_val = numeric_data.mean()
+        std_val = numeric_data.std()
+        
+        # Защита от деления на ноль
+        if std_val == 0:
+            print(f"Столбец '{column}' имеет нулевое стандартное отклонение")
+            return {
+                "column": column,
+                "mean": round(mean_val, 2),
+                "std": 0,
+                "outlier_count": 0,
+                "outliers_sample": [],
+                "outliers_indices": []
+            }
+        
+        # Считаем Z-score 
+        z_scores = (numeric_data - mean_val) / std_val
+        
+        # Находим выбросы: |Z| > threshold
+        outliers_mask = z_scores.abs() > threshold
+        outliers = numeric_data[outliers_mask]
+        outlier_z_scores = z_scores[outliers_mask]
+        
+        # Считаем метрики
+        outlier_count = len(outliers)
+        
+        outliers_sample = list(zip(
+            outliers.head(10).index.tolist(),
+            outliers.head(10).tolist(),
+            [round(z, 2) for z in outlier_z_scores.head(10).tolist()]
+        ))
+        
+        # Формируем результат
+        results = {
+            "Column": column,
+            "Mean": round(mean_val, 2),
+            "std": round(std_val, 2),
+            "Threshold": threshold,
+            "outlier_count": int(outlier_count),
+            "outliers_sample": outliers_sample,
+            "outliers_indices": outliers.head(10).index.tolist()
+        }
+        
+        # Сохраняем результат в metrics
+        if "outliers_zscore" not in self.metrics:
+            self.metrics["outliers_zscore"] = {}
+        self.metrics["outliers_zscore"][column] = results
+        
+        return results
+    
+    # ===== Сравнивает результаты IQR и Z-score ===============
+    def compare_outlier_methods(self, column: str, iqr_result: dict, zscore_result: dict) -> dict:
+        
+        # Извлекаем индексы выбросов из результатов
+        iqr_indices = set(iqr_result.get('outliers_indices', []))
+        z_indices = set(zscore_result.get('outliers_indices', []))
+        
+        # Находим пересечения и различия
+        both = iqr_indices & z_indices # Нашли ОБА метода
+        only_iqr = iqr_indices - z_indices # Только IQR
+        only_z = z_indices - iqr_indices # Только Z-score
+        union = iqr_indices | z_indices # Все уникальные выбросы
+        
+        # метрики согласия
+        total_checked = len(self.df[column].dropna())
+        agreement_pct = (len(both) / len(union) * 100) if len(union) > 0 else 100
+        
+        # результат
+        comparison = {
+            "column": column,
+            "total_values": total_checked,
+            "iqr_only_count": len(only_iqr),
+            "zscore_only_count": len(only_z),
+            "both_count": len(both),
+            "union_count": len(union),
+            "agreement_pct": round(agreement_pct, 2),
+            "samples": {
+                "both": list(both)[:5], # первые 5 индексов
+                "only_iqr": list(only_iqr)[:5],
+                "only_z": list(only_z)[:5]
+            }
+        }
+        
+        return comparison

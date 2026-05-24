@@ -5,14 +5,15 @@ from data_quality_analyzer import DataQualityAnalyzer
 
 def main():
     
+    # ========= общий путь для сохранения reports ==========
     script_dir = Path(__file__).parent
     project_dir = script_dir.parent
     
-    # Загрузите данные в DataFrame
+    # ================ Загрузите данные ===================
     ref_path = project_dir / "raw_data" / "customer_data.csv"
     
     if not ref_path.exists():
-        print(f'Не найден справочник: {ref_path}')
+        print(f'Не найден справочник-источник: {ref_path}')
         return
     
     print(f'Загружаем файл: {ref_path}')
@@ -48,6 +49,7 @@ def main():
         valid = result["Validated_count"].values[0]
         acc = result["Accuracy_%"].values[0]
         
+        # статус точности
         if acc >= 95:
             status = "Отлично"
         elif acc >= 85:
@@ -75,7 +77,7 @@ def main():
     print(f'Детальный отчёт сохранён: {error_report_path}')
     
     # ============ Анализ выбросов методом IQR ==================
-    print(f'Анализ выбросов методом IQR')
+    print(f'\nАнализ выбросов методом IQR')
 
     numeric_cols = ["age", "purchase_amount"]
     all_iqr_results = {}
@@ -112,8 +114,64 @@ def main():
     analyzer.plot_boxplots_all(columns=numeric_cols, save_dir=reports_dir)
     
     print(f'Все графики сохранены в: {reports_dir}')
-                        
     
+    # ============ Анализ выбросов методом Z-score ==================
+    print(f'\nАнализ выбросов методом Z-score')
+
+    zscore_cols = ["age", "purchase_amount"]
+    all_zscore_results = {}
+    
+    for col in zscore_cols:
+        print(f'\nСтолбец: {col}')
+        zscore_result = analyzer.ident_outliers_zscore(col, threshold=3.0)
+        
+        if zscore_result:
+            all_zscore_results[col] = zscore_result
+            
+            print(f"Среднее: {zscore_result['Mean']:.2f}")
+            print(f"Стандартное отклонение: {zscore_result['std']:.2f}")
+            print(f"Порог: ±{zscore_result['Threshold']}")
+            print(f"Найдено выбросов: {zscore_result['outlier_count']}шт.")
+            
+            if zscore_result["outliers_sample"]:
+                print(f"\nПримеры выбросов (первые 10):")
+                for idx, val, z in zscore_result['outliers_sample']:
+                    if col == "purchase_amount":
+                        print(f"[row {idx}] значение: {val:,.2f}руб. (Z={z})")
+                    else:
+                        print(f"[row {idx}] значение: {val} (Z={z})")
+    
+    # ========== Сравнение методов обнаружения выбросов ==========
+    print(f'\nСравнение методов обнаружения выбросов (IQR vs Z-score)')
+    
+    comparison_results = []
+    reports_dir = project_dir / "reports"
+    
+    for col in numeric_cols:
+        print(f'\nСравнение для столбца: {col}')
+              
+        iqr_res = all_iqr_results.get(col)
+        z_res = all_zscore_results.get(col)
+        
+        # Сравниваем
+        if iqr_res and z_res:
+            comp = analyzer.compare_outlier_methods(col, iqr_res, z_res)
+            comparison_results.append(comp)
+            
+            print(f'Только IQR: {comp["iqr_only_count"]}')
+            print(f'Только Z-score: {comp["zscore_only_count"]}')
+            print(f'Нашли оба: {comp["both_count"]}')
+            print(f'Согласие методов: {comp["agreement_pct"]}%')
+            
+            # статус согласия
+            if comp["agreement_pct"] >= 70:
+                status = "Высокое"
+            elif comp["agreement_pct"] >= 40:
+                status = "Умеренное"
+            else:
+                status = "Низкое"
+            print(f'{status} согласие')
+
 if __name__ == "__main__":
     main()
     
