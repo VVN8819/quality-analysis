@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import re
 from datetime import datetime
+import numpy as np
+from scipy import stats
 
-# Класс , который хранит данные и проводит расчеты.
+# Класс, который хранит данные и проводит расчеты.
 class DataQualityAnalyzer:
 
     def __init__(self, df: pd.DataFrame):
@@ -229,7 +231,7 @@ class DataQualityAnalyzer:
         numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
         
         if len(numeric_data) == 0:
-            print(f"Столбец '{column}' не содержит числовых данных")
+            print(f"Столбец '{column}' не содержит числовых данных для IQR")
             return {}
         
         # Рассчитайте статистики
@@ -275,7 +277,7 @@ class DataQualityAnalyzer:
         numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
         
         if len(numeric_data) == 0:
-            print(f"Столбец '{column}' не содержит числовых данных")
+            print(f"Столбец '{column}' не содержит числовых данных для boxplot")
             return {}
         
         # Рассчитайте статистики
@@ -350,7 +352,7 @@ class DataQualityAnalyzer:
         numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
         
         if len(numeric_data) == 0:
-            print(f"Столбец '{column}' не содержит числовых данных")
+            print(f"Столбец '{column}' не содержит числовых данных для Z-score")
             return {}
         
         # Рассчитайте статистики
@@ -438,3 +440,96 @@ class DataQualityAnalyzer:
         }
         
         return comparison
+    
+    # ========= Гистограмма с отмеченными границами ±3σ =========
+    def histogram_zscore(self, column: str, save_path: str=None):
+        
+        # исключаем пропуски из знаменателя
+        non_missing = self.df[column].dropna()
+        numeric_data = pd.to_numeric(non_missing, errors='coerce').dropna()
+        
+        if len(numeric_data) == 0:
+            print(f"Столбец '{column}' не содержит числовых данных для гистограммы")
+            return {}
+
+        # Рассчитайте статистики
+        mean_val = numeric_data.mean()
+        std_val = numeric_data.std()
+        
+        # Границы ±3σ
+        lower_3sigma = mean_val - 3 * std_val
+        upper_3sigma = mean_val + 3 * std_val
+        
+        # График
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Гистограмма
+        ax.hist(numeric_data, bins=30, density=True, alpha=0.7, 
+               color='skyblue', edgecolor='black', label='Реальные данные', zorder=1)
+        
+        # Кривая нормального распределения
+        x = np.linspace(numeric_data.min(), numeric_data.max(), 100)
+        normal_curve = stats.norm.pdf(x, mean_val, std_val)
+        ax.plot(x, normal_curve, 'r-', linewidth=2.5, label='Нормальное распределение', zorder=2)
+        
+        # Границы ±3σ
+        ax.axvline(lower_3sigma, color='orange', linestyle='--', linewidth=2, 
+                  label=f'−3σ: {lower_3sigma:.2f}', alpha=0.9, zorder=3)
+        ax.axvline(upper_3sigma, color='orange', linestyle='--', linewidth=2, 
+                  label=f'+3σ: {upper_3sigma:.2f}', alpha=0.9, zorder=3)
+        
+        # Среднее значение
+        ax.axvline(mean_val, color='green', linestyle=':', linewidth=2, 
+                  label=f'Среднее (μ): {mean_val:.2f}', alpha=0.9, zorder=3)
+        
+        # Область "нормы" между ±3σ
+        x_fill = np.linspace(lower_3sigma, upper_3sigma, 100)
+        ax.fill_between(x_fill, stats.norm.pdf(x_fill, mean_val, std_val), 
+                       alpha=0.15, color='green', label='Норма (±3σ)', zorder=0)
+        
+        # Подписи
+        ax.set_title(f'Гистограмма: {column}\nГраницы аномалий: Z-score = ±3σ', 
+                    fontsize=14, fontweight='bold', pad=15)
+        ax.set_xlabel('Значение', fontsize=11)
+        ax.set_ylabel('Плотность вероятности', fontsize=11)
+        ax.legend(loc='best', fontsize=10, framealpha=0.9)
+        ax.grid(axis='y', linestyle=':', alpha=0.4)
+        ax.set_axisbelow(True)  # Сетка
+        
+        # Статистика в угол графика
+        stats_text = (f'Среднее μ = {mean_val:.2f}\n'
+                     f'Стандартное отклонение σ = {std_val:.2f}\n'
+                     f'Количество N = {len(numeric_data)}')
+        ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=10,
+               verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+        
+        plt.tight_layout()
+        
+        # Сохранение
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f'Гистограмма сохранена: {save_path}')
+        
+        plt.show()
+        
+    # Гистограмма для каждого столбца из списка
+    def plot_histogram_zscore_all(self, columns: list, save_dir: str = None):
+        
+        results = {}
+        
+        for col in columns:
+            print(f'Строим Гистограмму: {col}')
+                
+            # путь для сохранения
+            if save_dir:
+                save_path = Path(save_dir) / f"histogram_zscore_{col}.png"
+            else:
+                save_path = None
+                
+            # Строим график
+            self.histogram_zscore(col, save_path=str(save_path) if save_path else None)
+            
+            results[col] = save_path
+        
+        return results

@@ -171,6 +171,17 @@ def main():
             else:
                 status = "Низкое"
             print(f'{status} согласие')
+            
+    # Гистограмма для метода Z-score
+    print(f"\nГистограммы с границами ±3σ (Z-score)")
+    
+    # Папка для сохранения графиков
+    reports_dir = project_dir / "reports"
+    
+    # Строим Гистограмму для каждого столбца
+    analyzer.plot_histogram_zscore_all(columns=numeric_cols, save_dir=reports_dir)
+    
+    print(f'Все гистограммы сохранены в: {reports_dir}')
 
 if __name__ == "__main__":
     main()
