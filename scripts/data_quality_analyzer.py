@@ -578,7 +578,7 @@ class DataQualityAnalyzer:
         print(f"Таблица сохранена: {txt_path}")
         
     # 5. Актуальность данных   
-    def calc_timeliness(self, date_column: str, reference_date: datetime = None) -> dict:
+    def calc_timeliness(self, date_column: str, reference_date: datetime = None, max_age_years: int = None) -> dict:
         
         if reference_date is None:
             reference_date = datetime.today()
@@ -594,12 +594,38 @@ class DataQualityAnalyzer:
         invalid_dates_count = total_records - len(valid_dates)
 
         # актуальность даты
-        is_timely = dates <= reference_date
-        timely_count = is_timely.sum()
+        is_not_future = dates <= reference_date
+        is_not_future_count = is_not_future.sum()
+        
+        # слишком старые записи
+        old_recs_count = 0
+        too_old_mask = pd.Series([False] * len(self.df))
+        
+        if max_age_years is not None:
+            # Минимальная допустимая дата
+            min_allowed_date = reference_date - pd.DateOffset(years=max_age_years)
+            
+            # Находим слишком старые записи
+            too_old_mask = (dates < min_allowed_date) & (dates.notna())
+            old_records_count = int(too_old_mask.sum())
+            
+            # Примеры старых записей
+            old_recs = self.df.loc[too_old_mask, column].head(10)
+            old_samples = old_recs.tolist()
+        else:
+            old_samples = []
         
         # Нет ли дат регистрации из будущего
         future_mask = (dates > reference_date) & (dates.notna())
         future_recs = self.df[future_mask][column].head(10)
+        
+        # не из будущего и не слишком старые
+        if max_age_years is not None:
+            is_timely = is_not_future & ~too_old_mask
+        else:
+            is_timely = is_not_future
+        
+        timely_count = int(is_timely.sum())
         
         # Считаем метрику
         timeliness_pct = (timely_count / total_records) * 100 if total_records > 0 else 0
@@ -611,9 +637,12 @@ class DataQualityAnalyzer:
             "invalid_dates": int(invalid_dates_count),
             "timely_records": int(timely_count),
             "future_records": int(future_mask.sum()),
+            "too_old_records": old_records_count,
+            "max_age_years": max_age_years,
             "timeliness_%": round(timeliness_pct, 2),
             "reference_date": reference_date.date(),
-            "future_samples": future_recs.tolist()
+            "future_samples": future_recs.tolist(),
+            "too_old_samples": old_samples
         }
     
         # Сохраняем результат в metrics

@@ -203,12 +203,13 @@ def main():
     print(f'\nРасчет актуальности данных (Timeliness) — registration_date')
     
     # Рассчитываем
-    timeliness_result = analyzer.calc_timeliness('registration_date')
+    timeliness_result = analyzer.calc_timeliness("registration_date", max_age_years=10)
     
     print(f"Результаты для '{timeliness_result['column']}':")
     print(f"Всего записей: {timeliness_result['total_records']}")
     print(f"Актуальные (≤ {timeliness_result['reference_date']}): {timeliness_result['timely_records']}")
     print(f"Из будущего: {timeliness_result['future_records']}")
+    print(f"Слишком старые: (> {timeliness_result['max_age_years']} лет): {timeliness_result['too_old_records']}")
     print(f"Не распознаны: {timeliness_result['invalid_dates']}")
     print(f"Актуальность: {timeliness_result['timeliness_%']}%")
     
@@ -219,13 +220,48 @@ def main():
         status = "Внимание"
     else:
         status = "Критично"
-    print(f"   Статус: {status}")
+    print(f"Статус: {status}")
     
     # Примеры дат из будущего
     if timeliness_result["future_samples"]:
         print(f"\nПримеры дат из будущего (первые 10):")
         for val in timeliness_result["future_samples"]:
             print(f'{val}')
+            
+    # Примеры старых записей
+    if timeliness_result["too_old_samples"]:
+        print(f"\nПримеры слишком старых записей (> {timeliness_result['max_age_years']} лет, первые 5):")
+        for val in timeliness_result["too_old_samples"]:
+            print(f"{val}")
+            
+    # Сохранение отчёта
+    timeliness_report_path = project_dir / "reports" / "timeliness_report.txt"
+    with open(timeliness_report_path, 'w', encoding='utf-8') as f:
+        f.write("Актуальность данных (Timeliness)\n")
+        f.write(f"Столбец: {timeliness_result['column']}\n")
+        f.write(f"Дата отсчета: {timeliness_result['reference_date']}\n")
+        f.write(f"Максимальный возраст записи: {timeliness_result['max_age_years']} лет\n\n")
+        
+        f.write(f"Всего записей: {timeliness_result['total_records']}\n")
+        f.write(f"Актуальные: {timeliness_result['timely_records']}\n")
+        f.write(f"Из будущего: {timeliness_result['future_records']}\n")
+        f.write(f"Слишком старые: {timeliness_result['too_old_records']}\n")
+        f.write(f"Не распознаны: {timeliness_result['invalid_dates']}\n\n")
+        
+        f.write(f"Актуальность: {timeliness_result['timeliness_%']}%\n")
+        f.write(f"Статус: {status}\n")
+        
+        if timeliness_result['future_samples']:
+            f.write(f"\nПримеры дат из будущего:\n")
+            for val in timeliness_result['future_samples']:
+                f.write(f"{val}\n")
+        
+        if timeliness_result['too_old_samples']:
+            f.write(f"\nПримеры слишком старых записей:\n")
+            for val in timeliness_result['too_old_samples']:
+                f.write(f"{val}\n")
+    
+    print(f'Отчёт сохранён: {timeliness_report_path}')
     
 if __name__ == "__main__":
     main()
