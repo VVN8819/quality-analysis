@@ -199,6 +199,34 @@ def main():
     
     print(f'Все гистограммы сохранены в: {reports_dir}')
 
+    # ============ Актуальность данных (Timeliness) ==================
+    print(f'\nРасчет актуальности данных (Timeliness) — registration_date')
+    
+    # Рассчитываем
+    timeliness_result = analyzer.calc_timeliness('registration_date')
+    
+    print(f"Результаты для '{timeliness_result['column']}':")
+    print(f"Всего записей: {timeliness_result['total_records']}")
+    print(f"Актуальные (≤ {timeliness_result['reference_date']}): {timeliness_result['timely_records']}")
+    print(f"Из будущего: {timeliness_result['future_records']}")
+    print(f"Не распознаны: {timeliness_result['invalid_dates']}")
+    print(f"Актуальность: {timeliness_result['timeliness_%']}%")
+    
+    # статус точности
+    if timeliness_result["timeliness_%"] >= 95:
+        status = "Отлично"
+    elif timeliness_result["timeliness_%"] >= 85:
+        status = "Внимание"
+    else:
+        status = "Критично"
+    print(f"   Статус: {status}")
+    
+    # Примеры дат из будущего
+    if timeliness_result["future_samples"]:
+        print(f"\nПримеры дат из будущего (первые 10):")
+        for val in timeliness_result["future_samples"]:
+            print(f'{val}')
+    
 if __name__ == "__main__":
     main()
     

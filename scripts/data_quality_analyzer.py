@@ -576,8 +576,51 @@ class DataQualityAnalyzer:
             f.write(comparison_df.to_string(index=False) + "\n")
         
         print(f"Таблица сохранена: {txt_path}")
-            
-            
+        
+    # 5. Актуальность данных   
+    def calc_timeliness(self, date_column: str, reference_date: datetime = None) -> dict:
+        
+        if reference_date is None:
+            reference_date = datetime.today()
+        
+        column = date_column
+        total_records = len(self.df)
+        
+        # Конвертируем значения в даты
+        dates = pd.to_datetime(self.df[column], errors='coerce')
+        
+        # Считаем статистику  
+        valid_dates = dates.dropna()
+        invalid_dates_count = total_records - len(valid_dates)
+
+        # актуальность даты
+        is_timely = dates <= reference_date
+        timely_count = is_timely.sum()
+        
+        # Нет ли дат регистрации из будущего
+        future_mask = (dates > reference_date) & (dates.notna())
+        future_recs = self.df[future_mask][column].head(10)
+        
+        # Считаем метрику
+        timeliness_pct = (timely_count / total_records) * 100 if total_records > 0 else 0
+        
+        results = {
+            "column": column,
+            "total_records": total_records,
+            "valid_dates": len(valid_dates),
+            "invalid_dates": int(invalid_dates_count),
+            "timely_records": int(timely_count),
+            "future_records": int(future_mask.sum()),
+            "timeliness_%": round(timeliness_pct, 2),
+            "reference_date": reference_date.date(),
+            "future_samples": future_recs.tolist()
+        }
     
+        # Сохраняем результат в metrics
+        if "timeliness" not in self.metrics:
+            self.metrics["timeliness"] = {}
+        self.metrics["timeliness"][column] = results
+        
+        return results
     
     
