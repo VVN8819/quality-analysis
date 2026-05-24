@@ -533,3 +533,51 @@ class DataQualityAnalyzer:
             results[col] = save_path
         
         return results
+    
+    # ========== Создайте таблицу сравнения методов IQR vs Z-score ========
+    def create_comparison_table(self, comparison_results: list) -> pd.DataFrame:
+        
+        table_data = []
+        
+        for comp in comparison_results:
+            col = comp["column"]
+            iqr_total = comp["iqr_only_count"] + comp["both_count"]
+            z_total = comp["zscore_only_count"] + comp["both_count"]
+            
+            # статус согласия
+            if comp["agreement_pct"] >= 70:
+                status = "Высокое"
+            elif comp["agreement_pct"] >= 40:
+                status = "Умеренное"
+            else:
+                status = "Низкое"
+            # print(f'{status} согласие')
+                
+            # результат
+            table_data.append({
+                "Столбец": col,
+                "Только IQR": iqr_total,
+                "Только Z-score": z_total,
+                "Общие выбросы": comp["both_count"],
+                "Различия": comp["union_count"],
+                "Статус": status
+            })
+            
+        return pd.DataFrame(table_data)
+    
+    # ========== Сохраняет таблицу сравнения методов IQR vs Z-score в txt ===========
+    def save_comparison_table(self, comparison_df: pd.DataFrame, save_path: str):
+        
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        
+        txt_path = save_path + '.txt'
+        with open(txt_path, 'w', encoding='utf-8') as f:
+            f.write("Сравнительный анализ: IQR vs Z-score\n")
+            f.write(comparison_df.to_string(index=False) + "\n")
+        
+        print(f"Таблица сохранена: {txt_path}")
+            
+            
+    
+    
+    

@@ -163,14 +163,30 @@ def main():
             print(f'Нашли оба: {comp["both_count"]}')
             print(f'Согласие методов: {comp["agreement_pct"]}%')
             
-            # статус согласия
-            if comp["agreement_pct"] >= 70:
-                status = "Высокое"
-            elif comp["agreement_pct"] >= 40:
-                status = "Умеренное"
+    if comparison_results:
+        print(f'\nТаблица Сравния (IQR vs Z-score)')
+        
+        # Создаём DataFrame
+        comparison_df = analyzer.create_comparison_table(comparison_results)
+        
+        # Выводим в консоль
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', 1200)
+        print(comparison_df.to_string(index=False))
+        
+        # Сохраняем в файлы
+        table_path = reports_dir / "outlier_comparison_summary"
+        analyzer.save_comparison_table(comparison_df, save_path=str(table_path))
+        
+        # Итог
+        print(f'\nИтог:')
+        for _, row in comparison_df.iterrows():
+            if row["Статус"].startswith('Нашли'):
+                print(f'{row["Столбец"]}: методы согласованы и выбросы надёжно определены')
+            elif row["Только IQR"] > row["Только Z-score"]:
+                print(f'{row["Столбец"]}: распределение скошенное, доверять IQR')
             else:
-                status = "Низкое"
-            print(f'{status} согласие')
+                print(f'{row["Столбец"]}: есть экстремумы, проверить на ошибки ввода')
             
     # Гистограмма для метода Z-score
     print(f"\nГистограммы с границами ±3σ (Z-score)")
